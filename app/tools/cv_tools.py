@@ -1,12 +1,36 @@
 import json
 import os
+import httpx
+
+def get_github_activity() -> str:
+    """AGENTE_DE_CODIGO: Consulta la actividad reciente en GitHub de Walter (Cuentas: amnotwallas y notwallas)."""
+    users = ["amnotwallas", "notwallas"]
+    summary = []
+    
+    with httpx.Client() as client:
+        for user in users:
+            try:
+                response = client.get(f"https://api.github.com/users/{user}/events/public", timeout=5.0)
+                if response.status_code == 200:
+                    events = response.json()[:5]  # Solo los últimos 5 eventos
+                    for event in events:
+                        etype = event.get("type")
+                        repo = event.get("repo", {}).get("name")
+                        summary.append(f"Account: {user} | Event: {etype} | Repo: {repo}")
+                else:
+                    summary.append(f"Could not fetch data for {user}: HTTP {response.status_code}")
+            except Exception as e:
+                summary.append(f"Error fetching data for {user}: {str(e)}")
+    
+    return "\n".join(summary) if summary else "No recent activity found."
 
 def _load_data():
     try:
-        path = os.path.join(os.path.dirname(__file__), "../../../src/assets/data.json")
+        path = os.path.join(os.path.dirname(__file__), "../data/cv_data.json")
         with open(path, "r") as f:
             return json.load(f)
-    except:
+    except Exception as e:
+        print(f"Error loading data: {e}")
         return {}
 
 def get_projects_info() -> str:
@@ -37,10 +61,19 @@ AVAILABLE_TOOLS = {
     "get_projects_info": get_projects_info,
     "get_experience_info": get_experience_info,
     "get_personal_info": get_personal_info,
-    "trigger_navigation": trigger_navigation
+    "trigger_navigation": trigger_navigation,
+    "get_github_activity": get_github_activity
 }
 
 TOOLS_SCHEMA = [
+    {
+        "type": "function",
+        "function": {
+            "name": "get_github_activity",
+            "description": "Get real-time GitHub activity (commits, pushes, etc.) from Walter's personal (amnotwallas) and work (notwallas) accounts.",
+            "parameters": {"type": "object", "properties": {}}
+        }
+    },
     {
         "type": "function",
         "function": {
