@@ -2,7 +2,7 @@ import json
 import os
 import httpx
 
-def get_github_activity() -> str:
+def get_github_activity(**kwargs) -> str:
     """AGENTE_DE_CODIGO: Consulta la actividad reciente en GitHub de Walter (Cuentas: amnotwallas y notwallas)."""
     users = ["amnotwallas", "notwallas"]
     summary = []
@@ -33,17 +33,17 @@ def _load_data():
         print(f"Error loading data: {e}")
         return {}
 
-def get_projects_info() -> str:
+def get_projects_info(**kwargs) -> str:
     """AGENTE_DE_PROYECTOS: Extrae detalles técnicos y links de repositorios."""
     data = _load_data()
     return json.dumps(data.get("projects", []), indent=2)
 
-def get_experience_info() -> str:
+def get_experience_info(**kwargs) -> str:
     """AGENTE_DE_EXPERIENCIA: Extrae historial laboral, empresas y fechas."""
     data = _load_data()
     return json.dumps(data.get("work", []), indent=2)
 
-def get_personal_info() -> str:
+def get_personal_info(**kwargs) -> str:
     """AGENTE_BIOGRÁFICO: Extrae educación, habilidades y contacto."""
     data = _load_data()
     return json.dumps({
