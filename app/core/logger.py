@@ -52,12 +52,17 @@ class ServerLogger:
         console_handler.setFormatter(ColoredFormatter())
         logger.addHandler(console_handler)
 
-        # File Handler for persistence
-        if log_file:
-            file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            file_handler = RotatingFileHandler(log_file, maxBytes=10*1024*1024, backupCount=5)
-            file_handler.setFormatter(file_formatter)
-            logger.addHandler(file_handler)
+        # File Handler - Disabled on Vercel
+        import os
+        if log_file and os.getenv("VERCEL") != "1":
+            try:
+                file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+                file_handler = RotatingFileHandler(log_file, maxBytes=10*1024*1024, backupCount=5)
+                file_handler.setFormatter(file_formatter)
+                logger.addHandler(file_handler)
+            except Exception as e:
+                # Fallback if file system is still read-only for any reason
+                logging.warning(f"Could not initialize file logger: {e}")
 
         cls._initialized = True
         logging.info("Logging system initialized successfully.")
