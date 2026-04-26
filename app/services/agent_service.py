@@ -48,6 +48,7 @@ class AgentService:
                 del self._sessions[session_id]
                 logger.info(f"Session {session_id} reset successfully.")
             
+            logger.info(f"NEW_CONVERSATION_STARTED: Session ID: {session_id or 'Anonymous'}")
             yield "data: [SYSTEM_READY]: WALTER_AI_CORE_ESTABLISHED. Cómo puedo ayudarte hoy?\n\n"
             return
 
@@ -56,6 +57,10 @@ class AgentService:
         # Si hay session_id y no enviaron historial, usamos el guardado
         current_history = saved_history if session_id and not history else history
         
+        # Log si es el primer mensaje de una conversación sin acción 'init'
+        if not current_history:
+            logger.info(f"FIRST_MESSAGE_RECEIVED: Session ID: {session_id or 'Anonymous'} | Query: {user_query}")
+
         messages = [{"role": "system", "content": SYSTEM_PROMPT}, *current_history, {"role": "user", "content": user_query}]
         
         logger.info(f"New Query: {user_query} | Session: {session_id or 'Anonymous'}")
