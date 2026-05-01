@@ -4,15 +4,15 @@ from typing import List, Optional, Any
 
 class LLMProvider:
     """
-    Provider class for LLM interactions using Groq SDK.
-    Handles client initialization and completion requests.
+    Provider class for LLM interactions using AsyncGroq SDK.
+    Handles client initialization and asynchronous completion requests.
     """
     def __init__(self):
         settings = get_settings()
-        self.client = groq.Groq(api_key=settings.GROQ_API_KEY)
+        self.client = groq.AsyncGroq(api_key=settings.GROQ_API_KEY)
         self.model = settings.MODEL_NAME
 
-    def get_completion(
+    async def get_completion(
         self, 
         messages: List[dict], 
         tools: Optional[List[dict]] = None, 
@@ -20,7 +20,7 @@ class LLMProvider:
         temperature: float = 0.5
     ) -> Any:
         """
-        Generates a non-streaming completion.
+        Generates a non-streaming asynchronous completion.
         """
         kwargs = {
             "model": self.model,
@@ -31,17 +31,17 @@ class LLMProvider:
             kwargs["tools"] = tools
             kwargs["tool_choice"] = tool_choice
 
-        return self.client.chat.completions.create(**kwargs)
+        return await self.client.chat.completions.create(**kwargs)
 
-    def get_streaming_completion(
+    async def get_streaming_completion(
         self, 
         messages: List[dict], 
         temperature: float = 0.5
     ) -> Any:
         """
-        Generates a streaming completion.
+        Generates a streaming asynchronous completion.
         """
-        return self.client.chat.completions.create(
+        return await self.client.chat.completions.create(
             model=self.model,
             messages=messages,
             temperature=temperature,

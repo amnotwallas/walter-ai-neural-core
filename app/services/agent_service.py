@@ -28,8 +28,8 @@ class AgentService:
         if session_id:
             self._sessions[session_id] = messages[-6:]
 
-    def _call_tool(self, tool_call):
-        """Dynamically executes a tool based on the LLM's request."""
+    async def _call_tool(self, tool_call):
+        """Dynamically executes a tool based on the LLM's request (asynchronous)."""
         function_name = tool_call.function.name
         try:
             function_args = json.loads(tool_call.function.arguments)
@@ -37,19 +37,20 @@ class AgentService:
             
             logger.info(f"Executing Tool: {function_name} | Args: {function_args}")
             
+            # Since all tools are now async, we await them
             if function_args:
-                result = function_to_call(**function_args)
+                result = await function_to_call(**function_args)
             else:
-                result = function_to_call()
+                result = await function_to_call()
             
             return result
         except Exception as e:
             logger.error(f"Error executing tool '{function_name}': {str(e)}")
             return f"Error: The action '{function_name}' could not be completed correctly."
 
-    def get_response(self, user_query: str, history: list = [], session_id: str = None) -> str:
+    async def get_response(self, user_query: str, history: list = [], session_id: str = None) -> str:
         """
-        Synchronous method to get a full response from the agent.
+        Asynchronous method to get a full response from the agent.
         """
         saved_history = self._get_session_history(session_id)
         current_history = saved_history if session_id and not history else history
@@ -59,7 +60,7 @@ class AgentService:
         
         try:
             # 1. First LLM pass to decide on tool usage
-            response = self.llm.get_completion(
+            response = await self.llm.get_completion(
                 messages=messages,
                 tools=TOOLS_SCHEMA,
                 tool_choice="auto"
@@ -72,7 +73,7 @@ class AgentService:
             if tool_calls:
                 messages.append(response_message)
                 for tool_call in tool_calls:
-                    function_response = self._call_tool(tool_call)
+                    function_response = await self._call_tool(tool_call)
                     messages.append({
                         "tool_call_id": tool_call.id,
                         "role": "tool",
@@ -81,7 +82,7 @@ class AgentService:
                     })
                 
                 # Generate final response with tool results
-                final_response = self.llm.get_completion(messages=messages)
+                final_response = await self.llm.get_completion(messages=messages)
                 full_response = final_response.choices[0].message.content
             else:
                 full_response = response_message.content
@@ -109,7 +110,7 @@ class AgentService:
             elif isinstance(m, dict): formatted.append(m)
         return formatted
 
-    def get_streaming_response(self, user_query: str, history: list = [], session_id: str = None, action: str = "chat"):
+    async def get_streaming_response(self, user_query: str, history: list = [], session_id: str = None, action: str = "chat"):
         """
         Asynchronous generator for streaming the agent's response.
         """
@@ -136,7 +137,7 @@ class AgentService:
         
         try:
             # 1. Decision phase
-            response = self.llm.get_completion(
+            response = await self.llm.get_completion(
                 messages=messages,
                 tools=TOOLS_SCHEMA,
                 tool_choice="auto"
@@ -149,7 +150,7 @@ class AgentService:
             if tool_calls:
                 messages.append(response_message)
                 for tool_call in tool_calls:
-                    function_response = self._call_tool(tool_call)
+                    function_response = await self._call_tool(tool_call)
                     messages.append({
                         "tool_call_id": tool_call.id,
                         "role": "tool",
@@ -158,13 +159,13 @@ class AgentService:
                     })
                 
                 logger.info("Generating final response based on tool data...")
-                stream = self.llm.get_streaming_completion(messages=messages)
+                stream = await self.llm.get_streaming_completion(messages=messages)
             else:
                 logger.info("Direct response initiated")
-                stream = self.llm.get_streaming_completion(messages=messages)
+                stream = await self.llm.get_streaming_completion(messages=messages)
 
             full_response = ""
-            for chunk in stream:
+            async for chunk in stream:
                 content = chunk.choices[0].delta.content
                 if content:
                     full_response += content

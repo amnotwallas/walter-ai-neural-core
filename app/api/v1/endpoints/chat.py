@@ -17,7 +17,7 @@ async def chat(
     """
     Standard chat endpoint. Returns the full response at once.
     """
-    response = agent.get_response(request_data.query, request_data.history)
+    response = await agent.get_response(request_data.query, request_data.history)
     return ChatResponse(response=response)
 
 @router.post("/chat/stream", dependencies=[Security(validate_api_key)])
