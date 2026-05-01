@@ -1,6 +1,7 @@
-import json
 import os
+import json
 import httpx
+from functools import lru_cache
 
 def get_github_activity(**kwargs) -> str:
     """CODE_AGENT: Fetches Walter's recent GitHub activity (Accounts: amnotwallas and notwallas)."""
@@ -24,6 +25,7 @@ def get_github_activity(**kwargs) -> str:
     
     return "\n".join(summary) if summary else "No recent activity found."
 
+@lru_cache()
 def _load_data():
     """Internal helper to load CV data from JSON file."""
     try:
