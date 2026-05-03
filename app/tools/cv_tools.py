@@ -57,15 +57,22 @@ async def get_personal_info(**kwargs) -> str:
 
 async def trigger_navigation(target: str) -> str:
     """NAVIGATION_AGENT: Triggers a redirection in the user interface.
-    Valid targets: 'CV', 'PROJECTS'."""
+    Valid targets: 'EXPERIENCE', 'PROJECTS'."""
     return f"[NAV:{target.upper()}]"
+
+async def highlight_element(element_type: str, item_id: str) -> str:
+    """UI_AGENT: Highlights a specific element in the interface.
+    element_type: 'PROJECT' or 'EXPERIENCE'.
+    item_id: The project slug or company id."""
+    return f"[HIGHLIGHT:{element_type.upper()}:{item_id}]"
 
 AVAILABLE_TOOLS = {
     "get_projects_info": get_projects_info,
     "get_experience_info": get_experience_info,
     "get_personal_info": get_personal_info,
     "trigger_navigation": trigger_navigation,
-    "get_github_activity": get_github_activity
+    "get_github_activity": get_github_activity,
+    "highlight_element": highlight_element
 }
 
 TOOLS_SCHEMA = [
@@ -116,6 +123,28 @@ TOOLS_SCHEMA = [
                     }
                 },
                 "required": ["target"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "highlight_element",
+            "description": "Visually emphasize a project or work experience on the user's screen.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "element_type": {
+                        "type": "string",
+                        "enum": ["PROJECT", "EXPERIENCE"],
+                        "description": "The type of element to highlight."
+                    },
+                    "item_id": {
+                        "type": "string",
+                        "description": "The project slug (e.g., 'portfolio') or company id (e.g., 'ibicare')."
+                    }
+                },
+                "required": ["element_type", "item_id"]
             }
         }
     }

@@ -24,6 +24,14 @@ class ChatMessage(BaseModel):
     role: MessageRole
     content: str
 
+class ChatContext(BaseModel):
+    """
+    Contextual information about the user's current navigation state.
+    """
+    url: Optional[str] = Field(None, description="Current full URL in Angular")
+    project_slug: Optional[str] = Field(None, description="Identifier of the project being viewed")
+    page: Optional[str] = Field(None, description="Page type (e.g., 'home', 'project_details')")
+
 class ChatRequest(BaseModel):
     """
     Schema for the chat request sent by the client.
@@ -34,6 +42,7 @@ class ChatRequest(BaseModel):
     session_id: Optional[str] = Field(None, description="Unique ID for conversation thread and persistence")
     action: Optional[str] = Field("chat", description="Action to perform: 'init' for greeting or 'chat' for normal interaction")
     history: Optional[List[ChatMessage]] = Field(default_factory=list, description="Previous conversation history")
+    context: Optional[ChatContext] = Field(None, description="Navigation context from the frontend")
 
 class ChatResponse(BaseModel):
     """

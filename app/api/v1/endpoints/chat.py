@@ -6,7 +6,6 @@ from app.core.security import validate_api_key, limiter
 from fastapi import Request
 
 router = APIRouter()
-
 @router.post("/chat", response_model=ChatResponse, dependencies=[Security(validate_api_key)])
 @limiter.limit("5/minute")
 async def chat(
@@ -17,7 +16,12 @@ async def chat(
     """
     Standard chat endpoint. Returns the full response at once.
     """
-    response = await agent.get_response(request_data.query, request_data.history)
+    response = await agent.get_response(
+        request_data.query, 
+        request_data.history, 
+        request_data.session_id,
+        request_data.context
+    )
     return ChatResponse(response=response)
 
 @router.post("/chat/stream", dependencies=[Security(validate_api_key)])
@@ -35,7 +39,9 @@ async def chat_stream(
             request_data.query, 
             request_data.history, 
             request_data.session_id,
-            request_data.action
+            request_data.action,
+            request_data.context
         ),
         media_type="text/event-stream"
     )
+

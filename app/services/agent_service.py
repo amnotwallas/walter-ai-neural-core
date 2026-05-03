@@ -17,6 +17,52 @@ class AgentService:
 
     def __init__(self):
         self.llm = LLMProvider()
+        self._project_data = self._load_data()
+
+    def _load_data(self):
+        """Loads the full portfolio data from data.json."""
+        try:
+            with open("app/data/data.json", "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Error loading data.json: {e}")
+            return {}
+
+    def _get_project_context(self, slug: str) -> str:
+        """Retrieves and formats context for a specific project."""
+        if not slug or not self._project_data:
+            return ""
+        
+        projects = self._project_data.get("projects", [])
+        project = next((p for p in projects if p.get("slug") == slug), None)
+        
+        if not project:
+            return ""
+        
+        context = (
+            f"User is currently viewing project: {project.get('name')}\n"
+            f"Description: {project.get('long_description', project.get('description'))}\n"
+            f"Stack: {', '.join(project.get('stack', []))}\n"
+            f"Status: {project.get('metadata', {}).get('status', 'N/A')}\n"
+            "If user uses 'this', 'here', 'this project' or similar, refer to these details."
+        )
+        return context
+
+    def _get_navigation_context(self, context_obj) -> str:
+        """Constructs context string based on navigation state."""
+        if not context_obj:
+            return ""
+        
+        parts = []
+        if context_obj.page == "home":
+            parts.append("User is on the HOME page. Greet them and mention they can explore projects below.")
+        
+        if context_obj.project_slug:
+            project_info = self._get_project_context(context_obj.project_slug)
+            if project_info:
+                parts.append(project_info)
+        
+        return "\n".join(parts)
 
     def _get_session_history(self, session_id: str) -> list:
         """Retrieves history for a given session."""
@@ -48,14 +94,15 @@ class AgentService:
             logger.error(f"Error executing tool '{function_name}': {str(e)}")
             return f"Error: The action '{function_name}' could not be completed correctly."
 
-    async def get_response(self, user_query: str, history: list = [], session_id: str = None) -> str:
+    async def get_response(self, user_query: str, history: list = [], session_id: str = None, context = None) -> str:
         """
         Asynchronous method to get a full response from the agent.
         """
         saved_history = self._get_session_history(session_id)
         current_history = saved_history if session_id and not history else history
         
-        secure_content = build_secure_message(user_query)
+        context_info = self._get_navigation_context(context)
+        secure_content = build_secure_message(user_query, context_info)
         messages = [*current_history, {"role": "user", "content": secure_content}]
         
         try:
@@ -110,7 +157,7 @@ class AgentService:
             elif isinstance(m, dict): formatted.append(m)
         return formatted
 
-    async def get_streaming_response(self, user_query: str, history: list = [], session_id: str = None, action: str = "chat"):
+    async def get_streaming_response(self, user_query: str, history: list = [], session_id: str = None, action: str = "chat", context = None):
         """
         Asynchronous generator for streaming the agent's response.
         """
@@ -130,7 +177,8 @@ class AgentService:
         if not current_history:
             logger.info(f"FIRST_MESSAGE_RECEIVED: Session ID: {session_id or 'Anonymous'} | Query: {user_query}")
 
-        secure_content = build_secure_message(user_query)
+        context_info = self._get_navigation_context(context)
+        secure_content = build_secure_message(user_query, context_info)
         messages = [*current_history, {"role": "user", "content": secure_content}]
         
         logger.info(f"New Query: {user_query} | Session: {session_id or 'Anonymous'}")
@@ -182,5 +230,42 @@ class AgentService:
                 self._save_session_history(session_id, formatted_history)
 
         except Exception as e:
-            logger.error(f"Critical error in AgentService: {str(e)}")
-            yield f"data: ERROR_SYSTEM_FAILURE: {str(e)}\n\n"
+            error_str = str(e)
+            if "failed_generation" in error_str:
+                logger.warning("RESCUE_ACTIVE: Processing failed_generation")
+                try:
+                    import re
+                    # 1. Extract the raw generated content
+                    content_match = re.search(r"failed_generation':\s*'(.*?)'\}", error_str, re.DOTALL)
+                    raw = content_match.group(1) if content_match else error_str
+                    
+                    # 2. Extract potential UI tokens before cleaning
+                    tokens = re.findall(r'\[NAV:.*?\]|\[HIGHLIGHT:.*?\]', raw)
+                    
+                    # 3. If it looks like a navigation call, synthesize the token if missing
+                    if "trigger_navigation" in raw and not any("NAV" in t for t in tokens):
+                        target_match = re.search(r'"target":\s*"(.*?)"', raw)
+                        if target_match:
+                            tokens.append(f"[NAV:{target_match.group(1).upper()}]")
+
+                    # 4. Clean prose: remove XML tags and JSON
+                    clean = re.sub(r'<function.*?>.*?(?:</function>|\[/function\]|<function>|\[function\]|$)', '', raw, flags=re.DOTALL | re.IGNORECASE)
+                    clean = re.sub(r'\{.*\}', '', clean).replace("\\n", "\n").replace("\\'", "'").strip()
+                    
+                    # 5. Build final response
+                    final_output = clean
+                    if tokens:
+                        # Append tokens only if not already present in clean text
+                        for token in tokens:
+                            if token not in final_output:
+                                final_output += f" {token}"
+                    
+                    final_output = final_output.strip()
+                    if len(final_output) > 2:
+                        yield f"data: {final_output}\n\n"
+                        return
+                except Exception as inner_e:
+                    logger.error(f"RESCUE_FAILED: {inner_e}")
+            
+            logger.error(f"SYSTEM_FAILURE: {error_str}")
+            yield f"data: ERROR_SYSTEM_FAILURE: {error_str}\n\n"
