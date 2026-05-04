@@ -40,8 +40,9 @@ Output ONLY the final response message. Never include internal checks or reasoni
 """
 
 def build_secure_message(user_input: str, context_info: str = "") -> str:
-    """Constructs the full message with navigation context."""
+    """Constructs the user message with optional navigation context and security footer."""
     sanitized_input = user_input.replace("---", "[SEC]")
-    context_section = f"\\n[CONTEXT: {context_info}]\\n" if context_info else ""
+    context_section = f"\n[CONTEXT: {context_info}]\n" if context_info else ""
     
-    return f"{SYSTEM_PROMPT}{context_section}\\n\\n[USER_INPUT]: {sanitized_input}\\n\\n{SECURITY_FOOTER}"
+    # SYSTEM_PROMPT is now handled separately as a 'system' role message in AgentService
+    return f"{context_section}\n[USER_INPUT]: {sanitized_input}\n\n{SECURITY_FOOTER}"

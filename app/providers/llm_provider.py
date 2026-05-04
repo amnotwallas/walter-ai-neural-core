@@ -36,14 +36,21 @@ class LLMProvider:
     async def get_streaming_completion(
         self, 
         messages: List[dict], 
+        tools: Optional[List[dict]] = None, 
+        tool_choice: str = "auto",
         temperature: float = 0.5
     ) -> Any:
         """
         Generates a streaming asynchronous completion.
         """
-        return await self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            temperature=temperature,
-            stream=True
-        )
+        kwargs = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": temperature,
+            "stream": True
+        }
+        if tools:
+            kwargs["tools"] = tools
+            kwargs["tool_choice"] = tool_choice
+
+        return await self.client.chat.completions.create(**kwargs)

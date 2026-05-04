@@ -96,7 +96,13 @@ class AgentService:
         
         context_info = self._get_navigation_context(context)
         secure_content = build_secure_message(user_query, context_info)
-        messages = [*current_history, {"role": "user", "content": secure_content}]
+        
+        # Inject SYSTEM_PROMPT as a dedicated system message for efficiency
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            *current_history, 
+            {"role": "user", "content": secure_content}
+        ]
         
         try:
             # 1. First LLM pass to decide on tool usage
@@ -152,7 +158,7 @@ class AgentService:
 
     async def get_streaming_response(self, user_query: str, history: list = [], session_id: str = None, action: str = "chat", context = None):
         """
-        Asynchronous generator for streaming the agent's response.
+        Asynchronous generator for streaming the agent's response with Early Streaming optimization.
         """
         # Handle session initialization
         if action == "init":
@@ -172,45 +178,85 @@ class AgentService:
 
         context_info = self._get_navigation_context(context)
         secure_content = build_secure_message(user_query, context_info)
-        messages = [*current_history, {"role": "user", "content": secure_content}]
+        
+        # Inject SYSTEM_PROMPT as a dedicated system message for efficiency
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            *current_history, 
+            {"role": "user", "content": secure_content}
+        ]
         
         logger.info(f"New Query: {user_query} | Session: {session_id or 'Anonymous'}")
         
         try:
-            # 1. Decision phase
-            response = await self.llm.get_completion(
+            # 1. First Pass (Streaming Decision)
+            first_pass_stream = await self.llm.get_streaming_completion(
                 messages=messages,
                 tools=tool_registry.schemas,
                 tool_choice="auto"
             )
-            
-            response_message = response.choices[0].message
-            tool_calls = response_message.tool_calls
 
-            # 2. Tool execution and final streaming
-            if tool_calls:
-                messages.append(response_message)
-                for tool_call in tool_calls:
-                    function_response = await self._call_tool(tool_call)
+            full_response = ""
+            tool_calls_data = [] 
+            is_tool_call = False
+            
+            async for chunk in first_pass_stream:
+                delta = chunk.choices[0].delta
+                
+                # Detect and accumulate tool calls
+                if delta.tool_calls:
+                    is_tool_call = True
+                    for tc in delta.tool_calls:
+                        index = tc.index
+                        while len(tool_calls_data) <= index:
+                            tool_calls_data.append({"id": "", "type": "function", "function": {"name": "", "arguments": ""}})
+                        
+                        if tc.id:
+                            tool_calls_data[index]["id"] = tc.id
+                        if tc.function:
+                            if tc.function.name:
+                                tool_calls_data[index]["function"]["name"] += tc.function.name
+                            if tc.function.arguments:
+                                tool_calls_data[index]["function"]["arguments"] += tc.function.arguments
+                
+                # If it's regular content, yield it immediately (Early Streaming)
+                elif delta.content:
+                    content = delta.content
+                    full_response += content
+                    yield f"data: {content}\n\n"
+
+            # 2. If tools were detected, execute them and perform second pass
+            if is_tool_call:
+                # Append assistant message with tool calls to history for context
+                assistant_message = {"role": "assistant", "tool_calls": tool_calls_data}
+                messages.append(assistant_message)
+                
+                # Execute each accumulated tool
+                for tc_data in tool_calls_data:
+                    # Create a proxy object that matches the expected tool_call interface (.id, .function.name, .function.arguments)
+                    class ToolCallProxy:
+                        def __init__(self, data):
+                            self.id = data["id"]
+                            self.function = type('FunctionProxy', (object,), data["function"])
+                    
+                    proxy = ToolCallProxy(tc_data)
+                    function_response = await self._call_tool(proxy)
+                    
                     messages.append({
-                        "tool_call_id": tool_call.id,
+                        "tool_call_id": tc_data["id"],
                         "role": "tool",
-                        "name": tool_call.function.name,
+                        "name": tc_data["function"]["name"],
                         "content": function_response,
                     })
                 
-                logger.info("Generating final response based on tool data...")
-                stream = await self.llm.get_streaming_completion(messages=messages)
-            else:
-                logger.info("Direct response initiated")
-                stream = await self.llm.get_streaming_completion(messages=messages)
-
-            full_response = ""
-            async for chunk in stream:
-                content = chunk.choices[0].delta.content
-                if content:
-                    full_response += content
-                    yield f"data: {content}\n\n"
+                logger.info("Executing tools and generating final response...")
+                final_stream = await self.llm.get_streaming_completion(messages=messages)
+                
+                async for chunk in final_stream:
+                    content = chunk.choices[0].delta.content
+                    if content:
+                        full_response += content
+                        yield f"data: {content}\n\n"
             
             # Final quality assessment
             QualityGuard.evaluate(user_query, full_response)
