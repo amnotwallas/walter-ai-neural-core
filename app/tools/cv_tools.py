@@ -168,14 +168,14 @@ tool_registry.register_tool(
         "type": "function",
         "function": {
             "name": "trigger_navigation",
-            "description": "Redirect the user to a specific section of the website.",
+            "description": "ONLY use this to change the user's page. Use 'EXPERIENCE' for work history, 'PROJECTS' for the portfolio list, or 'HOME' for the main screen.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "target": {
                         "type": "string",
                         "enum": ["EXPERIENCE", "PROJECTS", "HOME"],
-                        "description": "The destination module."
+                        "description": "The destination page."
                     }
                 },
                 "required": ["target"]
@@ -190,18 +190,18 @@ tool_registry.register_tool(
         "type": "function",
         "function": {
             "name": "highlight_element",
-            "description": "Visually emphasize a project or work experience on the user's screen.",
+            "description": "ONLY use this to focus on ONE specific item. For work history, use element_type='EXPERIENCE'. For projects, use element_type='PROJECT'.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "element_type": {
                         "type": "string",
                         "enum": ["PROJECT", "EXPERIENCE"],
-                        "description": "The type of element to highlight."
+                        "description": "Category of the element."
                     },
                     "item_id": {
                         "type": "string",
-                        "description": "The project slug (e.g., 'portfolio') or the company name (e.g., 'IBICARE')."
+                        "description": "The EXACT slug (for projects) or company name (for experience) from VALID_IDENTIFIERS."
                     }
                 },
                 "required": ["element_type", "item_id"]

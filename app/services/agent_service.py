@@ -62,7 +62,13 @@ class AgentService:
         # 2. Current Page State
         if context_obj:
             if context_obj.page == "home":
-                parts.append("User is on the HOME page.")
+                parts.append("CURRENT_LOCATION: User is on the HOME page.")
+            elif context_obj.page == "project_details":
+                parts.append(f"CURRENT_LOCATION: User is already viewing the DETAILS of project: {context_obj.project_slug}")
+            elif context_obj.page == "projects":
+                parts.append("CURRENT_LOCATION: User is viewing the PROJECTS list.")
+            elif context_obj.page == "experience":
+                parts.append("CURRENT_LOCATION: User is viewing the EXPERIENCE section.")
 
             if context_obj.project_slug:
                 project_info = self._get_project_context(context_obj.project_slug)
@@ -354,8 +360,13 @@ class AgentService:
                 await self._save_session_history(session_id, formatted_history)
 
         except Exception as e:
-            logger.error(f"SYSTEM_FAILURE: {str(e)}")
-            yield f"data: {json.dumps({'message': f'ERROR: {str(e)}', 'actions': []})}\n\n"
+            error_msg = str(e)
+            if "failed_generation" in error_msg:
+                logger.error(f"GROQ_TOOL_CALL_ERROR: {error_msg}")
+                yield f"data: {json.dumps({'message': 'I encountered a technical glitch while trying to use my tools. Let me try again without them.', 'actions': []})}\n\n"
+            else:
+                logger.error(f"SYSTEM_FAILURE: {error_msg}")
+                yield f"data: {json.dumps({'message': f'ERROR: {error_msg}', 'actions': []})}\n\n"
 
     # =========================
     # UTILS
