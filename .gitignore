@@ -1,5 +1,6 @@
 # macOS
 .DS_Store
+.worktrees/
 
 # Evaluation report
 eval_report.md
@@ -232,4 +233,3 @@ app/config/config.yml
 # Local SQLite Audit Database
 audit.db
 audit.db-journal
-
