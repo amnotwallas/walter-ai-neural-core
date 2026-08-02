@@ -1,37 +1,14 @@
 {
-  "system": {
-    "id": "WALTER_CORE",
-    "version": "2.1.0",
-    "status": "OPERATIONAL",
-    "location": {
-      "city": "MX",
-      "coords": "19.4326° N, 99.1332° W",
-      "timezone": "UTC-6"
-    },
-    "uptime_start": "2026-04-27T00:00:00Z"
-  },
-  "terminal": {
-    "welcome_message": "[WALTER-AI]: SYSTEM_READY. TRY_COMMANDS: 'EXPERIENCE' OR 'VIEW_PROJECTS'_",
-    "command_suggestions": [
-      "EXPERIENCE",
-      "VIEW_PROJECTS",
-      "SYSTEM_STATUS",
-      "CONTACT"
-    ],
-    "boot_sequence": [
-      "INITIALIZING_MODULES...",
-      "CONNECTING_TO_LLM_GATEWAY... [OK]",
-      "DATA_STREAM_STABLE"
-    ]
-  },
   "basics": {
-    "name": "Walter Jahir Ambriz Reyna",
+    "name": "Walter Ambriz Reyna",
     "label": "Backend & AI Engineer",
-    "system_label": "ARCHITECT",
     "summary": "Backend & AI Engineer, Mexico. I build production systems with LLMs using Python and FastAPI. I love creating agents, connecting models to real data, and solving hard problems with AI. Passionate about learning and shipping things that work.",
     "email": "walterardev@gmail.com",
-    "website": "walterambriz.dev",
+    "website": "https://amnotwallas.github.io/Portfolio/",
     "url": "https://github.com/amnotwallas",
+    "location": "Guadalajara, Jalisco, México",
+    "open_to_relocate": true,
+    "open_to": "AI Engineering or Backend roles — remote, hybrid, or full-time in México",
     "profiles": [
       {
         "network": "LinkedIn",
@@ -60,7 +37,8 @@
         "Request Validation",
         "JWT",
         "RBAC",
-        "Server Sent Events"
+        "Server Sent Events (SSE)",
+        "Clean Architecture"
       ]
     },
     {
@@ -69,7 +47,11 @@
         "LLM Integration (OpenAI APIs)",
         "Multiagent Orchestration",
         "Tool Use",
-        "Prompt Engineering"
+        "Prompt Engineering",
+        "Prompt Injection Guardrails",
+        "RAG Systems",
+        "Context Engeneering",
+        "LLM Evaluation Pipelines"
       ]
     },
     {
@@ -98,8 +80,8 @@
         "Linux",
         "SSH",
         "Git",
-        "Remote Debugging",
-        "Azure"
+        "Azure",
+        "AWS"
       ]
     }
   ],
@@ -108,9 +90,18 @@
       "company": "IBICARE",
       "role": "Backend & AI Engineer",
       "period": "2025-09 — Present",
-      "summary": "Built and owned production backend services with Python and FastAPI, connecting LLM agents to live biometric data and product APIs for a digital health platform serving 400+ users. Developed multiagent orchestration systems and MLflow evaluation pipelines to validate AI responses.",
+      "summary": "Own the AI infrastructure and backend integrations powering Neuroa, a multiagent health assistant embedded in IBICARE's app, serving 400+ active users across corporate wellness programs (HR admins, coaches, physiotherapists, nutritionists).",
       "image": "https://play-lh.googleusercontent.com/qRNTf7VjO6Lhc4Zo5APR5MYfyHFgdxDhWVDI0dTNeCYPEZgUi-CvQQtgP87tHvjimDU",
-      "highlights": ["Python", "FastAPI", "LLM Agents", "MLflow", "SQL Server"]
+      "highlights": ["Python", "FastAPI", "LLM Agents", "MLflow", "SQL Server"],
+      "achievements": [
+        "Cut LLM operational costs 40% by routing queries to models sized to their complexity, plus caching repeated queries",
+        "Built MLflow evaluation pipelines wired into CI/CD — catch prompt regressions, tool-call errors, hallucination rate, and safety violations before every deploy",
+        "Implemented RBAC-aware access validation at the agent level, hard-separating what regular users, admins, and health professionals can see"
+      ],
+      "metrics": [
+        "400+ active users on production AI infrastructure",
+        "300+ wearable devices integrated via Junction API"
+      ]
     },
     {
       "company": "Tecnm Campus Apatzingán",
@@ -156,7 +147,13 @@
         "complexity": "HIGH",
         "challenges": "Enforcing strict Clean Architecture boundaries between domain logic and infrastructure (LLM, vector store, parsers) while streaming citations and tokens in real time via SSE.",
         "solutions": "Designed a ports-and-adapters architecture isolating domain/use cases from FastAPI and storage adapters, added double-layer guardrails to cut unnecessary LLM calls, and implemented legal-aware chunking for Spanish-language documents."
-      }
+      },
+      "highlights": [
+        "Double-layer guardrails abort before the LLM when no relevant chunks are found — eliminates LLM cost on empty queries entirely",
+        "Legal-aware text chunking optimized for Spanish legal vocabulary and document structure",
+        "SSE streaming delivers citations before tokens start — sources visible immediately",
+        "API key security with dev proxy injection — keys never exposed to the browser"
+      ]
     },
     {
       "id": "walter-ai",
@@ -179,18 +176,26 @@
         "complexity": "VERY HIGH",
         "challenges": "Ensuring strictly validated JSON responses from Llama models under tool-use constraints, preventing prompt-injection attacks, and avoiding provider rate limits during bulk automated runs.",
         "solutions": "Removed pseudo-code examples from prompts, built a regex-based bilingual guardrail layer, implemented exponential backoff logic, and built a double-layer CI/CD evaluator combining deterministic checks with an LLM-as-a-judge."
-      }
+      },
+      "highlights": [
+        "Supervisor orchestration with isolated tool access and structured outputs",
+        "SSE streaming with full execution tracing from prompt to final response",
+        "Automated CI/CD evaluation pipeline (GitHub Actions) combining deterministic action checks with LLM-as-a-judge",
+        "Proactive bilingual guardrail layer intercepting prompt injection, rule evasion, and formatting anomalies",
+        "Hexagonal architecture (ports and adapters) isolating router, LLM clients (LiteLLM), and audit telemetry"
+      ]
     }
   ],
   "education": [
     {
-      "institution": "ITS Apatzingán",
+      "institution": "Instituto Tecnológico Superior de Apatzingán (ITSA)",
       "degree": "B.S. Computer Systems Engineering",
-      "period": "2021 — 2026"
+      "period": "2021 — 2026",
+      "note": "All coursework completed. Degree conferral in progress (Aug 2026)."
     }
   ],
   "languages": [
     { "name": "Spanish", "level": "Native" },
-    { "name": "English", "level": "Upper intermediate (B2)" }
+    { "name": "English", "level": "B2 — Professional working proficiency" }
   ]
 }

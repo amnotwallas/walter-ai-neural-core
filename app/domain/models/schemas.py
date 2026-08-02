@@ -64,18 +64,6 @@ class ChatResponse(BaseModel):
 
 # --- Portfolio Data Models (Validation) ---
 
-class SystemInfo(BaseModel):
-    id: str
-    version: str
-    status: str
-    location: dict
-    uptime_start: str
-
-class TerminalInfo(BaseModel):
-    welcome_message: str
-    command_suggestions: List[str]
-    boot_sequence: List[str]
-
 class Profile(BaseModel):
     network: str
     username: str
@@ -84,12 +72,14 @@ class Profile(BaseModel):
 class Basics(BaseModel):
     name: str
     label: str
-    system_label: str
     summary: str
     email: str
     website: str
     url: str
     profiles: List[Profile]
+    location: Optional[str] = None
+    open_to_relocate: Optional[bool] = None
+    open_to: Optional[str] = None
 
 class SkillCategory(BaseModel):
     category: str
@@ -102,6 +92,8 @@ class WorkExperience(BaseModel):
     summary: str
     image: Optional[str] = None
     highlights: List[str]
+    achievements: Optional[List[str]] = None
+    metrics: Optional[List[str]] = None
 
 class ProjectLinks(BaseModel):
     github: Optional[str] = None
@@ -126,11 +118,13 @@ class Project(BaseModel):
     period: str
     links: ProjectLinks
     metadata: ProjectMetadata
+    highlights: Optional[List[str]] = None
 
 class Education(BaseModel):
     institution: str
     degree: str
     period: str
+    note: Optional[str] = None
 
 class Language(BaseModel):
     name: str
@@ -138,8 +132,6 @@ class Language(BaseModel):
 
 class PortfolioData(BaseModel):
     """Root model for data.json validation."""
-    system: SystemInfo
-    terminal: TerminalInfo
     basics: Basics
     skills: List[SkillCategory]
     work: List[WorkExperience]
