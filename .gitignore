@@ -2,6 +2,8 @@
 .DS_Store
 .worktrees/
 
+walter-ai/docs/deployment/
+
 # Evaluation report
 eval_report.md
 
