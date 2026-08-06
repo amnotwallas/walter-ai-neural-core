@@ -46,6 +46,21 @@ def test_settings_validation_missing_anthropic_key():
                 Settings()
             assert "Missing ANTHROPIC_API_KEY" in str(exc_info.value)
 
+def test_settings_validation_missing_fallback_key():
+    with patch("app.core.config._load_llm_yaml") as mock_load:
+        mock_load.return_value = {
+            "llm": {"model": "groq/llama-3.1-8b-instant", "fallback": "openai/gpt-4o-mini"}
+        }
+        with patch.dict(os.environ, {
+            "API_KEY": "test_token",
+            "FORCE_ENV_VALIDATION": "1",
+            "GROQ_API_KEY": "valid_groq_key",
+            "OPENAI_API_KEY": ""
+        }, clear=True):
+            with pytest.raises(ValidationError) as exc_info:
+                Settings()
+            assert "Missing OPENAI_API_KEY" in str(exc_info.value)
+
 def test_settings_validation_success():
     with patch("app.core.config._load_llm_yaml") as mock_load:
         mock_load.return_value = {"llm": {"model": "groq/meta-llama/llama-4-scout-17b-16e-instruct"}}

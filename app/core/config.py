@@ -57,13 +57,13 @@ class Settings(BaseSettings):
         if "pytest" in sys.modules and os.getenv("FORCE_ENV_VALIDATION") != "1":
             return self
             
-        model = self.llm_model
-        if model.startswith("groq/") and not self.GROQ_API_KEY:
-            raise ValueError(f"Missing GROQ_API_KEY in environment for model '{model}'")
-        elif model.startswith("openai/") and not self.OPENAI_API_KEY:
-            raise ValueError(f"Missing OPENAI_API_KEY in environment for model '{model}'")
-        elif model.startswith("anthropic/") and not self.ANTHROPIC_API_KEY:
-            raise ValueError(f"Missing ANTHROPIC_API_KEY in environment for model '{model}'")
+        for model in filter(None, [self.llm_model, self.llm_fallback]):
+            if model.startswith("groq/") and not self.GROQ_API_KEY:
+                raise ValueError(f"Missing GROQ_API_KEY in environment for model '{model}'")
+            elif model.startswith("openai/") and not self.OPENAI_API_KEY:
+                raise ValueError(f"Missing OPENAI_API_KEY in environment for model '{model}'")
+            elif model.startswith("anthropic/") and not self.ANTHROPIC_API_KEY:
+                raise ValueError(f"Missing ANTHROPIC_API_KEY in environment for model '{model}'")
         return self
 
     @property
