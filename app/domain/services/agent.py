@@ -220,6 +220,15 @@ class AgentService:
                     action_model = AgentAction(**parsed_result["__action__"])
                     actions_list.append(action_model.model_dump())
                     return f"Action {action_model.type} executed successfully."
+                elif isinstance(parsed_result, list):
+                    count = 0
+                    for item in parsed_result:
+                        if isinstance(item, dict) and "__action__" in item:
+                            action_model = AgentAction(**item["__action__"])
+                            actions_list.append(action_model.model_dump())
+                            count += 1
+                    if count:
+                        return f"Tour executed: {count} actions queued."
             except Exception as e:
                 logger.warning(f"Validation failed for action payload from tool: {e}")
 

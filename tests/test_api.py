@@ -238,3 +238,45 @@ async def test_agent_tool_call_telemetry_span():
         mock_trace.get_tracer.assert_called_with("walter-ai")
         mock_tracer.start_as_current_span.assert_called_with("agent_tool_call")
 
+
+@pytest.mark.asyncio
+async def test_call_tool_handles_action_list():
+    """_call_tool populates actions_list when a tool returns a list of __action__ dicts."""
+    import json
+    from app.domain.services.agent import AgentService
+    from unittest.mock import MagicMock
+
+    agent = AgentService(llm=MagicMock(), data_provider=MagicMock())
+
+    mock_tool_call = MagicMock()
+    mock_tool_call.function.name = "start_portfolio_tour"
+    mock_tool_call.function.arguments = "{}"
+
+    # start_portfolio_tour doesn't exist yet — stub it in the registry
+    from app.tools.registry import tool_registry
+
+    async def _stub_tour(**kwargs) -> str:
+        return json.dumps([
+            {"__action__": {"type": "navigation", "target": "HOME"}},
+            {"__action__": {"type": "navigation", "target": "PROJECTS"}},
+        ])
+
+    tool_registry._tools["start_portfolio_tour"] = _stub_tour
+    tool_registry._schemas.append({
+        "type": "function",
+        "function": {"name": "start_portfolio_tour", "parameters": {"type": "object", "properties": {}}}
+    })
+
+    actions = []
+    result = await agent._call_tool(mock_tool_call, actions)
+
+    del tool_registry._tools["start_portfolio_tour"]
+    tool_registry._schemas.pop()
+
+    assert len(actions) == 2
+    assert actions[0]["type"] == "navigation"
+    assert actions[0]["target"] == "HOME"
+    assert actions[1]["type"] == "navigation"
+    assert actions[1]["target"] == "PROJECTS"
+
+
