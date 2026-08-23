@@ -354,3 +354,26 @@ async def test_call_tool_handles_action_list():
     assert actions[1]["target"] == "PROJECTS"
 
 
+@pytest.mark.asyncio
+async def test_start_portfolio_tour_returns_action_sequence():
+    """start_portfolio_tour returns a JSON list of __action__ dicts covering the full tour."""
+    import json
+    from app.tools.cv_tools import start_portfolio_tour
+
+    result = await start_portfolio_tour()
+    steps = json.loads(result)
+
+    assert isinstance(steps, list)
+    assert len(steps) >= 4  # At minimum: HOME, PROJECTS, EXPERIENCE, HOME
+
+    types = [s["__action__"]["type"] for s in steps]
+    assert "navigation" in types
+    assert "highlight" in types
+
+    targets = [s["__action__"].get("target") for s in steps if s["__action__"]["type"] == "navigation"]
+    assert "HOME" in targets
+    assert "PROJECTS" in targets
+    assert "EXPERIENCE" in targets
+
+
+

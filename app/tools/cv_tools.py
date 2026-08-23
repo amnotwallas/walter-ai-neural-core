@@ -121,3 +121,36 @@ async def highlight_element(element_type: str, item_id: str) -> str:
         return "Error: Missing item_id."
 
     return json.dumps({"__action__": {"type": "highlight", "element_type": element_type.upper(), "item_id": item_id}})
+
+@tool_registry.tool(
+    description="Start a guided tour of Walter's portfolio. Use when the user asks for a full overview, tour, or says 'show me everything' / 'muéstrame todo' / 'dame el tour'."
+)
+async def start_portfolio_tour(**kwargs) -> str:
+    """NAVIGATION_AGENT: Executes a sequential guided tour of the portfolio."""
+    data = data_provider.get_data()
+    if not data:
+        return json.dumps([])
+
+    steps = [
+        {"__action__": {"type": "navigation", "target": "HOME"}},
+        {"__action__": {"type": "navigation", "target": "PROJECTS"}},
+    ]
+
+    for project in data.projects[:2]:
+        steps.append({"__action__": {"type": "highlight", "element_type": "PROJECT", "item_id": project.slug}})
+
+    steps.append({"__action__": {"type": "navigation", "target": "EXPERIENCE"}})
+
+    if data.work:
+        steps.append({
+            "__action__": {
+                "type": "highlight",
+                "element_type": "EXPERIENCE",
+                "item_id": data.work[0].company.upper()
+            }
+        })
+
+    steps.append({"__action__": {"type": "navigation", "target": "HOME"}})
+
+    return json.dumps(steps)
+
