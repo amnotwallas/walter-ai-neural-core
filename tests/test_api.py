@@ -376,4 +376,13 @@ async def test_start_portfolio_tour_returns_action_sequence():
     assert "EXPERIENCE" in targets
 
 
+def test_system_prompt_contains_personality_and_tour_rules():
+    """Verifica que el SYSTEM_PROMPT contenga las reglas de personalidad y tour."""
+    from app.core.prompts import SYSTEM_PROMPT
 
+    prompt_lower = SYSTEM_PROMPT.lower()
+    assert "personality" in prompt_lower
+    assert "órale" in SYSTEM_PROMPT or "mexicanismo" in prompt_lower
+    assert "fun fact" in prompt_lower
+    assert "start_portfolio_tour" in SYSTEM_PROMPT
+    assert "muéstrame todo" in prompt_lower
