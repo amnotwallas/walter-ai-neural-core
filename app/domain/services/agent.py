@@ -503,7 +503,10 @@ class AgentService:
 
                         proxy = ToolCallProxy(tc_data)
                         logger.debug(f"Calling tool {tc_data['function']['name']} with args: {tc_data['function']['arguments']}")
+                        prev_len = len(actions)
                         function_response = await self._call_tool(proxy, actions, conv_id, tool_logs=tool_logs, session_id=session_id)
+                        if len(actions) > prev_len:
+                            yield f"data: {json.dumps({'message': '', 'actions': actions[prev_len:]})}\n\n"
                         messages.append({
                             "tool_call_id": tc_data["id"],
                             "role": "tool",
@@ -512,10 +515,6 @@ class AgentService:
                         })
                     
                     iterations += 1
-                
-                # Send final actions if any
-                if actions:
-                    yield f"data: {json.dumps({'message': '', 'actions': actions})}\n\n"
 
                 if session_id:
                     formatted_history = self._format_history(current_history)

@@ -240,6 +240,80 @@ async def test_agent_tool_call_telemetry_span():
 
 
 @pytest.mark.asyncio
+async def test_streaming_actions_emitted_before_text():
+    """Actions SSE chunk arrives before any text chunk in the streaming response."""
+    import json
+    from app.domain.services.agent import AgentService
+    from app.tools.registry import tool_registry
+    from unittest.mock import MagicMock, AsyncMock
+
+    mock_llm = MagicMock()
+    agent = AgentService(llm=mock_llm, data_provider=MagicMock())
+
+    async def _stub_action_tool(**kwargs) -> str:
+        return json.dumps({"__action__": {"type": "navigation", "target": "PROJECTS"}})
+
+    tool_registry._tools["test_action_tool"] = _stub_action_tool
+    tool_registry._schemas.append({
+        "type": "function",
+        "function": {"name": "test_action_tool", "parameters": {"type": "object", "properties": {}}}
+    })
+
+    func_mock = MagicMock()
+    func_mock.name = "test_action_tool"
+    func_mock.arguments = "{}"
+
+    tc_mock = MagicMock()
+    tc_mock.index = 0
+    tc_mock.id = "call_1"
+    tc_mock.function = func_mock
+
+    delta_mock = MagicMock()
+    delta_mock.tool_calls = [tc_mock]
+    delta_mock.content = None
+
+    choice_mock = MagicMock()
+    choice_mock.delta = delta_mock
+
+    tool_chunk = MagicMock()
+    tool_chunk.choices = [choice_mock]
+
+    async def stream_1():
+        yield tool_chunk
+
+    text_chunk = MagicMock()
+    text_chunk.choices = [
+        MagicMock(
+            delta=MagicMock(
+                tool_calls=None,
+                content="Here are the projects."
+            )
+        )
+    ]
+
+    async def stream_2():
+        yield text_chunk
+
+    mock_llm.get_streaming_completion = AsyncMock(side_effect=[stream_1(), stream_2()])
+
+    try:
+        events = []
+        async for chunk in agent.get_streaming_response(user_query="show projects"):
+            for line in chunk.strip().split("\n"):
+                if line.startswith("data: "):
+                    events.append(json.loads(line[len("data: "):]))
+
+        assert len(events) == 2
+        assert events[0]["message"] == ""
+        assert len(events[0]["actions"]) == 1
+        assert events[0]["actions"][0]["type"] == "navigation"
+        assert events[0]["actions"][0]["target"] == "PROJECTS"
+        assert events[1]["actions"] == []
+        assert events[1]["message"] == "Here are the projects."
+    finally:
+        del tool_registry._tools["test_action_tool"]
+        tool_registry._schemas.pop()
+@pytest.mark.asyncio
 async def test_call_tool_handles_action_list():
     """_call_tool populates actions_list when a tool returns a list of __action__ dicts."""
     import json
