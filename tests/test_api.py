@@ -313,6 +313,8 @@ async def test_streaming_actions_emitted_before_text():
     finally:
         del tool_registry._tools["test_action_tool"]
         tool_registry._schemas.pop()
+
+
 @pytest.mark.asyncio
 async def test_call_tool_handles_action_list():
     """_call_tool populates actions_list when a tool returns a list of __action__ dicts."""
@@ -341,17 +343,18 @@ async def test_call_tool_handles_action_list():
         "function": {"name": "start_portfolio_tour", "parameters": {"type": "object", "properties": {}}}
     })
 
-    actions = []
-    result = await agent._call_tool(mock_tool_call, actions)
+    try:
+        actions = []
+        await agent._call_tool(mock_tool_call, actions)
 
-    del tool_registry._tools["start_portfolio_tour"]
-    tool_registry._schemas.pop()
-
-    assert len(actions) == 2
-    assert actions[0]["type"] == "navigation"
-    assert actions[0]["target"] == "HOME"
-    assert actions[1]["type"] == "navigation"
-    assert actions[1]["target"] == "PROJECTS"
+        assert len(actions) == 2
+        assert actions[0]["type"] == "navigation"
+        assert actions[0]["target"] == "HOME"
+        assert actions[1]["type"] == "navigation"
+        assert actions[1]["target"] == "PROJECTS"
+    finally:
+        del tool_registry._tools["start_portfolio_tour"]
+        tool_registry._schemas.pop()
 
 
 @pytest.mark.asyncio
